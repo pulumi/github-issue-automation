@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pulumi/pulumi-aws/sdk/v4/go/aws"
 	"github.com/pulumi/pulumi-aws/sdk/v4/go/aws/iam"
 	"github.com/pulumi/pulumi-aws/sdk/v4/go/aws/lambda"
-	"github.com/pulumi/pulumi-aws/sdk/v4/go/aws/ssm"
+	"github.com/pulumi/pulumi-aws/sdk/v4/go/aws/secretsmanager"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -21,12 +20,18 @@ func main() {
 
 		lambdaName := "new-release-handler"
 
-		_, err := ssm.NewParameter(ctx, "release-handler-github-token", &ssm.ParameterArgs{
+		secret, err := secretsmanager.NewSecret(ctx, "release-handler-github-token-secret", &secretsmanager.SecretArgs{
 			Description: pulumi.String("GitHub token that allows the creation of issues in all repos in the Pulumi org."),
 			Name:        pulumi.String(fmt.Sprintf("/%s/github-token", lambdaName)),
-			Type:        ssm.ParameterTypeSecureString,
-			Value:       pulumi.String(githubToken),
-		}, pulumi.AdditionalSecretOutputs([]string{"value"}))
+		})
+		if err != nil {
+			return err
+		}
+
+		_, err = secretsmanager.NewSecretVersion(ctx, "release-handler-github-token-version", &secretsmanager.SecretVersionArgs{
+			SecretId:      secret.ID(),
+			SecretString:  pulumi.String(githubToken),
+		})
 		if err != nil {
 			return err
 		}
@@ -57,7 +62,7 @@ func main() {
 			return err
 		}
 
-		lambda, err := lambda.NewFunction(ctx, "new-release-handler", &lambda.FunctionArgs{
+		lambdaFunction, err := lambda.NewFunction(ctx, "new-release-handler", &lambda.FunctionArgs{
 			Handler: pulumi.String(lambdaName),
 			Code:    pulumi.NewFileArchive("../.build"),
 			Role:    lambdaRole.Arn,
@@ -77,64 +82,18 @@ func main() {
 			return err
 		}
 
-		region, err := aws.GetRegion(ctx, nil, nil)
-		if err != nil {
-			return err
-		}
-
-		identity, err := aws.GetCallerIdentity(ctx, nil, nil)
-		if err != nil {
-			return err
-		}
-
-		ssmArn := fmt.Sprintf("arn:aws:ssm:%s:%s:parameter/%s/*", region.Name, identity.AccountId, lambdaName)
-		bytes, err := json.Marshal((map[string]interface{}{
-			"Version": "2012-10-17",
-			"Statement": []map[string]interface{}{
-				{
-					"Effect": "Allow",
-					"Action": []string{
-						"ssm:GetParameterHistory",
-						"ssm:GetParametersByPath",
-						"ssm:GetParameters",
-						"ssm:GetParameter",
-					},
-					"Resource": []string{
-						ssmArn,
-					},
-				},
-			},
-		}))
-		if err != nil {
-			return err
-		}
-
-		policy, err := iam.NewPolicy(ctx, "read-ssm-params", &iam.PolicyArgs{
-			Name:        pulumi.String("new-release-handler-read-ssm"),
-			Description: pulumi.String("Allows the new-release-handler Lambda to access its SSM parameters"),
-			Policy:      pulumi.String(bytes),
-		})
-		if err != nil {
-			return err
-		}
-
-		_, err = iam.NewRolePolicyAttachment(ctx, "read-ssm-params-attachment", &iam.RolePolicyAttachmentArgs{
-			PolicyArn: policy.Arn,
-			Role:      lambdaRole.Name,
-		})
-		if err != nil {
-			return err
-		}
-
-		policyDoc := lambda.Arn.ApplyT(func(arn string) (string, error) {
-			bytes, jsonErr := json.Marshal((map[string]interface{}{
+		// Source: https://docs.aws.amazon.com/mediaconnect/latest/ug/iam-policy-examples-asm-secrets.html#iam-policy-examples-asm-specific-secrets
+		secretPolicyDoc := secret.Arn.ApplyT(func(arn string) (string, error) {
+			bytes, err := json.Marshal(map[string]interface{}{
 				"Version": "2012-10-17",
 				"Statement": []map[string]interface{}{
 					{
 						"Effect": "Allow",
 						"Action": []string{
-							"lambda:InvokeFunction",
-							"lambda:GetFunction",
+							"secretsmanager:GetResourcePolicy",
+							"secretsmanager:GetSecretValue",
+							"secretsmanager:DescribeSecret",
+							"secretsmanager:ListSecretVersionIds",
 						},
 						"Resource": []string{
 							arn,
@@ -142,15 +101,62 @@ func main() {
 					},
 					{
 						"Effect": "Allow",
-						"Action": []string{
-							"lambda:ListFunctions",
-						},
-						"Resource": []string{
-							"*",
-						},
+						"Action": "secretsmanager:ListSecrets",
+						"Resource": "*",
 					},
 				},
-			}))
+			})
+			if err != nil {
+				return "", err
+			}
+
+			return string(bytes), nil
+		})
+		if err != nil {
+			return err
+		}
+
+		policy, err := iam.NewPolicy(ctx, "new-release-handler-read-secrets", &iam.PolicyArgs{
+			Description: pulumi.String("Allows the new-release-handler Lambda to access its secrets."),
+			Policy:      secretPolicyDoc,
+		})
+		if err != nil {
+			return err
+		}
+
+		_, err = iam.NewRolePolicyAttachment(ctx, "read-secrets-attachment", &iam.RolePolicyAttachmentArgs{
+			PolicyArn: policy.Arn,
+			Role:      lambdaRole.Name,
+		})
+		if err != nil {
+			return err
+		}
+
+		policyDoc := lambdaFunction.Arn.ApplyT(func(arn string) (string, error) {
+			bytes, jsonErr := json.Marshal(map[string]interface{}{
+							"Version": "2012-10-17",
+							"Statement": []map[string]interface{}{
+								{
+									"Effect": "Allow",
+									"Action": []string{
+										"lambdaFunction:InvokeFunction",
+										"lambdaFunction:GetFunction",
+									},
+									"Resource": []string{
+										arn,
+									},
+								},
+								{
+									"Effect": "Allow",
+									"Action": []string{
+										"lambdaFunction:ListFunctions",
+									},
+									"Resource": []string{
+										"*",
+									},
+								},
+							},
+						})
 			if jsonErr != nil {
 				return "", jsonErr
 			}
