@@ -22,15 +22,15 @@ func main() {
 
 		secret, err := secretsmanager.NewSecret(ctx, "release-handler-github-token-secret", &secretsmanager.SecretArgs{
 			Description: pulumi.String("GitHub token that allows the creation of issues in all repos in the Pulumi org."),
-			Name:        pulumi.String(fmt.Sprintf("/%s/github-token", lambdaName)),
+			NamePrefix:  pulumi.String(fmt.Sprintf("/%s/github-token", lambdaName)),
 		})
 		if err != nil {
 			return err
 		}
 
 		_, err = secretsmanager.NewSecretVersion(ctx, "release-handler-github-token-version", &secretsmanager.SecretVersionArgs{
-			SecretId:      secret.ID(),
-			SecretString:  pulumi.String(githubToken),
+			SecretId:     secret.ID(),
+			SecretString: pulumi.String(githubToken),
 		})
 		if err != nil {
 			return err
@@ -100,8 +100,8 @@ func main() {
 						},
 					},
 					{
-						"Effect": "Allow",
-						"Action": "secretsmanager:ListSecrets",
+						"Effect":   "Allow",
+						"Action":   "secretsmanager:ListSecrets",
 						"Resource": "*",
 					},
 				},
@@ -116,7 +116,7 @@ func main() {
 			return err
 		}
 
-		policy, err := iam.NewPolicy(ctx, "new-release-handler-read-secrets", &iam.PolicyArgs{
+		secretsPolicy, err := iam.NewPolicy(ctx, "new-release-handler-read-secrets", &iam.PolicyArgs{
 			Description: pulumi.String("Allows the new-release-handler Lambda to access its secrets."),
 			Policy:      secretPolicyDoc,
 		})
@@ -125,38 +125,38 @@ func main() {
 		}
 
 		_, err = iam.NewRolePolicyAttachment(ctx, "read-secrets-attachment", &iam.RolePolicyAttachmentArgs{
-			PolicyArn: policy.Arn,
+			PolicyArn: secretsPolicy.Arn,
 			Role:      lambdaRole.Name,
 		})
 		if err != nil {
 			return err
 		}
 
-		policyDoc := lambdaFunction.Arn.ApplyT(func(arn string) (string, error) {
+		zapierPolicyDoc := lambdaFunction.Arn.ApplyT(func(arn string) (string, error) {
 			bytes, jsonErr := json.Marshal(map[string]interface{}{
-							"Version": "2012-10-17",
-							"Statement": []map[string]interface{}{
-								{
-									"Effect": "Allow",
-									"Action": []string{
-										"lambdaFunction:InvokeFunction",
-										"lambdaFunction:GetFunction",
-									},
-									"Resource": []string{
-										arn,
-									},
-								},
-								{
-									"Effect": "Allow",
-									"Action": []string{
-										"lambdaFunction:ListFunctions",
-									},
-									"Resource": []string{
-										"*",
-									},
-								},
-							},
-						})
+				"Version": "2012-10-17",
+				"Statement": []map[string]interface{}{
+					{
+						"Effect": "Allow",
+						"Action": []string{
+							"lambda:InvokeFunction",
+							"lambda:GetFunction",
+						},
+						"Resource": []string{
+							arn,
+						},
+					},
+					{
+						"Effect": "Allow",
+						"Action": []string{
+							"lambda:ListFunctions",
+						},
+						"Resource": []string{
+							"*",
+						},
+					},
+				},
+			})
 			if jsonErr != nil {
 				return "", jsonErr
 			}
@@ -164,17 +164,17 @@ func main() {
 			return string(bytes), nil
 		})
 
-		policy, err = iam.NewPolicy(ctx, "zapier-policy", &iam.PolicyArgs{
+		zapierPolicy, err := iam.NewPolicy(ctx, "zapier-policy", &iam.PolicyArgs{
 			Name:        pulumi.String("zapier"),
 			Description: pulumi.String("Allows Zapier to invoke a Lambda"),
-			Policy:      policyDoc,
+			Policy:      zapierPolicyDoc,
 		})
 		if err != nil {
 			return err
 		}
 
 		_, err = iam.NewUserPolicyAttachment(ctx, "zapier-policy-attachment", &iam.UserPolicyAttachmentArgs{
-			PolicyArn: policy.Arn,
+			PolicyArn: zapierPolicy.Arn,
 			User:      user.Name,
 		})
 		if err != nil {

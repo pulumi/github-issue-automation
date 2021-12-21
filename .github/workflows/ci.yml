@@ -1,0 +1,14 @@
+name: CI
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    name: Deploy
+    steps:
+      - uses: actions/checkout@master
+      - name: Test
+        run: make test
+      - name: Preview
+        run: cd pulumi && pulumi preview
