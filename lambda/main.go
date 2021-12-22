@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/url"
@@ -32,6 +33,14 @@ func LambdaHandler(event NewRelease) error {
 	bytes, err := json.MarshalIndent(event, "", "  ")
 	if err != nil {
 		return err
+	}
+
+	if event.Title == "" {
+		return errors.New("the 'Title' field is required on the incoming event")
+	}
+
+	if event.Link == "" {
+		return errors.New("the 'Link' field is required on the incoming event")
 	}
 
 	log.Printf("Event = %s", bytes)
@@ -81,7 +90,7 @@ func LambdaHandler(event NewRelease) error {
 	//platformIntegrationsBoardId := 12058265
 	providerUpgradesColumnsId := int64(14558007)
 	_, _, err = gitHubClient.Projects.CreateProjectCard(ctx, providerUpgradesColumnsId, &github.ProjectCardOptions{
-		ContentID:   *issue.ID,
+		ContentID: *issue.ID,
 		// Not documented in the API.  See instead: https://stackoverflow.com/questions/57024087/github-api-how-to-move-an-issue-to-a-project
 		ContentType: "Issue",
 	})
@@ -128,7 +137,7 @@ func getGitHubToken() (string, error) {
 
 	client := secretsmanager.New(newSession)
 	secret, err := client.GetSecretValue(&secretsmanager.GetSecretValueInput{
-		SecretId:     aws.String("/new-release-handler/github-token"),
+		SecretId: aws.String("/new-release-handler/github-token"),
 	})
 	if err != nil {
 		return "", err

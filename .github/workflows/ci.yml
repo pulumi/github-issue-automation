@@ -1,11 +1,16 @@
 name: CI
+
 on:
   pull_request:
   workflow_dispatch:
+
+env:
+  PULUMI_ACCESS_TOKEN: ${{ secrets. }}
+
 jobs:
   main:
     runs-on: ubuntu-latest
-    name: Deploy
+    name: Test
     steps:
       - uses: actions/checkout@master
       - name: Test
