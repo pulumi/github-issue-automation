@@ -1,0 +1,17 @@
+name: Release
+on:
+  push:
+    branches:
+      - "main"
+  workflow_dispatch:
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    name: Deploy
+    steps:
+      - uses: actions/checkout@master
+      - name: Test
+        run: make test
+      - id: Deploy
+        run: cd pulumi && pulumi up -y

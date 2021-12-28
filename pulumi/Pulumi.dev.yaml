@@ -1,0 +1,5 @@
+config:
+  aws:defaultTags:
+    tags:
+      owner: platform-integrations
+      repo: pulumi/github-issue-automation

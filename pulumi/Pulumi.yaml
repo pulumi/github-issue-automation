@@ -1,0 +1,5 @@
+name: github-issue-automation
+runtime: go
+description:
+  Code and infra to automate the creation of GitHub issues for Terraform
+  provider updates
