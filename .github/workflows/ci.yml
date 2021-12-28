@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 env:
-  PULUMI_ACCESS_TOKEN: ${{ secrets. }}
+  PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
 
 jobs:
   main:
@@ -15,5 +15,9 @@ jobs:
       - uses: actions/checkout@master
       - name: Test
         run: make test
-      - name: Preview
-        run: cd pulumi && pulumi preview
+      - name: Pulumi preview
+        uses: pulumi/actions@v3
+        with:
+          work-dir: pulumi
+          command: preview
+          stack-name: pulumi/github-issue-automation
