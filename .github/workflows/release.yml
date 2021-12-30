@@ -29,5 +29,5 @@ jobs:
         uses: pulumi/actions@v3
         with:
           work-dir: pulumi
-          command: up -y
+          command: up
           stack-name: pulumi/github-issue-automation
