@@ -3,3 +3,4 @@ config:
     tags:
       owner: platform-integrations
       repo: pulumi/github-issue-automation
+  aws:region: us-west-2
