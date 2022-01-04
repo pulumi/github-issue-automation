@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -130,6 +131,11 @@ func parsePulumiRepo(terraformProviderUri string) (string, error) {
 }
 
 func getGitHubToken() (string, error) {
+	arn := os.Getenv("GITHUB_TOKEN_SECRET_ARN")
+	if arn == "" {
+		panic("The environment variable 'GITHUB_TOKEN_SECRET_ARN' must be set.")
+	}
+
 	newSession, err := session.NewSession()
 	if err != nil {
 		return "", err
@@ -137,7 +143,7 @@ func getGitHubToken() (string, error) {
 
 	client := secretsmanager.New(newSession)
 	secret, err := client.GetSecretValue(&secretsmanager.GetSecretValueInput{
-		SecretId: aws.String("/new-release-handler/github-token"),
+		SecretId: aws.String(arn),
 	})
 	if err != nil {
 		return "", err
