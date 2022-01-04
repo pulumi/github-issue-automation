@@ -70,6 +70,11 @@ func main() {
 			// Be careful not to change this value as it will break all existing Zaps
 			// since Zapier invokes the Lambda by name:
 			Name: pulumi.String(lambdaName),
+			Environment: &lambda.FunctionEnvironmentArgs{
+				Variables: pulumi.StringMap{
+					"GITHUB_TOKEN_SECRET_ARN": secret.Arn,
+				},
+			},
 		})
 		if err != nil {
 			return err
