@@ -32,3 +32,9 @@ func TestParsePulumiRepo(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "pulumi-gcp", res)
 }
+
+func TestParseVersion(t *testing.T) {
+	res, err := parseVersion("https://github.com/jfrog/terraform-provider-artifactory/releases/tag/v2.6.25")
+	assert.Nil(t, err)
+	assert.Equal(t, "v2.6.25", res)
+}

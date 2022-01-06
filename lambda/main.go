@@ -63,7 +63,13 @@ func LambdaHandler(event NewRelease) error {
 	if err != nil {
 		return err
 	}
-	issueTitle := fmt.Sprintf("Upgrade %s to %s", tfRepo, event.Title)
+
+	version, err := parseVersion(event.Link)
+	if err != nil {
+		return err
+	}
+
+	issueTitle := fmt.Sprintf("Upgrade %s to %s", tfRepo, version)
 
 	log.Printf("Checking for an existing issue in repo '%s'", pulumiRepo)
 	issues, err := getIssues(ctx, gitHubClient, pulumiRepo)
@@ -102,6 +108,16 @@ func LambdaHandler(event NewRelease) error {
 	log.Print("Done.")
 
 	return nil
+}
+
+func parseVersion(link string) (string, error) {
+	u, err := url.Parse(link)
+	if err != nil {
+		return "", err
+	}
+
+	segments := strings.Split(u.Path, "/")
+	return segments[len(segments)-1], nil
 }
 
 func parseTerraformRepo(terraformProviderUri string) (string, error) {
