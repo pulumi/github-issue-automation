@@ -85,9 +85,13 @@ func LambdaHandler(event NewRelease) error {
 	}
 
 	log.Print("Did not find an existing issue.  Creating a new issue.")
+
+	body := fmt.Sprintf("Release details: %s", event.Link)
+
 	issue, _, err := gitHubClient.Issues.Create(ctx, "pulumi", pulumiRepo, &github.IssueRequest{
 		Title:  github.String(issueTitle),
 		Labels: &[]string{"kind/enhancement"},
+		Body:   github.String(body),
 	})
 	if err != nil {
 		return err
