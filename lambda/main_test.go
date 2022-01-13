@@ -38,3 +38,13 @@ func TestParseVersion(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "v2.6.25", res)
 }
+
+func TestIsPreRelease(t *testing.T) {
+	res1, err := isPreRelease("v0.25.29-pre%2B8224954")
+	assert.Equal(t, true, res1)
+	assert.Nil(t, err)
+
+	res2, err := isPreRelease("v2.6.25")
+	assert.Equal(t, false, res2)
+	assert.Nil(t, err)
+}

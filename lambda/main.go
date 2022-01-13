@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/blang/semver"
 	"log"
 	"net/url"
 	"os"
@@ -69,6 +70,15 @@ func LambdaHandler(event NewRelease) error {
 		return err
 	}
 
+	isPre, err := isPreRelease(version)
+	if err != nil {
+		return err
+	}
+	if isPre {
+		log.Printf("Version %s is pre-release. Nothing to do. Exiting.", version)
+		return nil
+	}
+
 	issueTitle := fmt.Sprintf("Upgrade %s to %s", tfRepo, version)
 
 	log.Printf("Checking for an existing issue in repo '%s'", pulumiRepo)
@@ -112,6 +122,24 @@ func LambdaHandler(event NewRelease) error {
 	log.Print("Done.")
 
 	return nil
+}
+
+func isPreRelease(version string) (bool, error) {
+	if strings.HasPrefix(version, "v") {
+		version = version[1:]
+	}
+
+	version, err := url.QueryUnescape(version)
+	if err != nil {
+		return false, err
+	}
+
+	v, err := semver.Parse(version)
+	if err != nil {
+		return false, err
+	}
+
+	return len(v.Pre) > 0, nil
 }
 
 func parseVersion(link string) (string, error) {
