@@ -31,6 +31,10 @@ func TestParsePulumiRepo(t *testing.T) {
 	res, err = parsePulumiRepo("https://github.com/hashicorp/terraform-provider-google-beta/releases/tag/v2.6.21")
 	assert.Nil(t, err)
 	assert.Equal(t, "pulumi-gcp", res)
+
+	res, err = parsePulumiRepo("https://github.com/hashicorp/terraform/releases/tag/v1.1.3")
+	assert.Nil(t, err)
+	assert.Equal(t, "pulumi-terraform", res)
 }
 
 func TestParseVersion(t *testing.T) {
