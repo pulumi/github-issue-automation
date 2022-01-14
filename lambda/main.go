@@ -173,6 +173,8 @@ func parsePulumiRepo(terraformProviderUri string) (string, error) {
 		return "pulumi-azure", nil
 	case "terraform-provider-google-beta":
 		return "pulumi-gcp", nil
+	case "terraform":
+		return "pulumi-terraform", nil
 	default:
 		return strings.Replace(tfProvider, "terraform-provider", "pulumi", -1), nil
 	}
