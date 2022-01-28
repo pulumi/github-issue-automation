@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"os"
+	"strings"
 
 	"github.com/pulumi/pulumi-aws/sdk/v4/go/aws/iam"
 	"github.com/pulumi/pulumi-aws/sdk/v4/go/aws/lambda"
@@ -11,11 +13,25 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+type LambdaConfig struct {
+	TriggerWorkflowAllowList []string `yaml:"trigger-workflow-allow-list"`
+}
+
 func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
 		githubToken := os.Getenv("GITHUB_TOKEN")
 		if githubToken == "" {
 			panic("Environment variable GITHUB_TOKEN must be set to a GitHub token that allows the creation of issues in all repos in the Pulumi org.")
+		}
+
+		var lambdaConfig LambdaConfig
+		bytes, err := os.ReadFile("lambda-config.yaml")
+		if err != nil {
+			return err
+		}
+		err = yaml.Unmarshal(bytes, &lambdaConfig)
+		if err != nil {
+			return err
 		}
 
 		lambdaName := "new-release-handler"
@@ -72,7 +88,8 @@ func main() {
 			Name: pulumi.String(lambdaName),
 			Environment: &lambda.FunctionEnvironmentArgs{
 				Variables: pulumi.StringMap{
-					"GITHUB_TOKEN_SECRET_ARN": secret.Arn,
+					"GITHUB_TOKEN_SECRET_ARN":     secret.Arn,
+					"TRIGGER_WORKFLOW_ALLOW_LIST": pulumi.String(strings.Join(lambdaConfig.TriggerWorkflowAllowList, " ")),
 				},
 			},
 		})

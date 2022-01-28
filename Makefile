@@ -6,9 +6,10 @@ default: .build/new-release-handler
 lambda/go.sum: lambda/go.mod
 	cd lambda && go mod tidy
 
+# Intended for local deployment only
 .PHONY: deploy
 deploy: .build/new-release-handler pulumi/*
-	cd pulumi && pulumi up
+	cd pulumi && pulumi up -s dev
 
 .PHONY: test
 test: lambda/go.sum
