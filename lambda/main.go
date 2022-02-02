@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/blang/semver"
+	"golang.org/x/oauth2"
 	"log"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,14 +18,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/google/go-github/v41/github"
-	"golang.org/x/oauth2"
 )
 
 type NewRelease struct {
-	Title string `json:Title`
-	Link  string `json:Link`
+	Title string `json:"Title"`
+	Link  string `json:"Link"`
 	// Tracks the name of the Zap that originated the request:
-	ZapierSource string `json:ZapierSource`
+	ZapierSource string `json:"ZapierSource"`
 }
 
 func main() {
@@ -34,7 +34,7 @@ func main() {
 func LambdaHandler(event NewRelease) error {
 	bytes, err := json.MarshalIndent(event, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to marshall incoming event: %s", err)
 	}
 
 	if event.Title == "" {
@@ -70,11 +70,7 @@ func LambdaHandler(event NewRelease) error {
 		return err
 	}
 
-	isPre, err := isPreRelease(version)
-	if err != nil {
-		return err
-	}
-	if isPre {
+	if isPreRelease(version) {
 		log.Printf("Version %s is pre-release. Nothing to do. Exiting.", version)
 		return nil
 	}
@@ -87,36 +83,66 @@ func LambdaHandler(event NewRelease) error {
 		return err
 	}
 
+	issueExists := false
+	var issueNumber int
 	for _, issue := range issues {
 		if *issue.Title == issueTitle {
-			log.Printf("There is already an issue with the title '%s' in repo 'pulumi/%s'. Nothing to do - exiting.", issueTitle, pulumiRepo)
-			return nil
+			issueNumber = *issue.Number
+			issueExists = true
+			break
 		}
 	}
 
-	log.Print("Did not find an existing issue.  Creating a new issue.")
+	if issueExists {
+		log.Printf("There is already an issue with the title '%s' in repo 'pulumi/%s'.", issueTitle, pulumiRepo)
+	} else {
+		log.Print("Did not find an existing issue.  Creating a new issue.")
 
-	body := fmt.Sprintf("Release details: %s", event.Link)
+		body := fmt.Sprintf("Release details: %s", event.Link)
 
-	issue, _, err := gitHubClient.Issues.Create(ctx, "pulumi", pulumiRepo, &github.IssueRequest{
-		Title:  github.String(issueTitle),
-		Labels: &[]string{"kind/enhancement"},
-		Body:   github.String(body),
-	})
-	if err != nil {
-		return err
+		issue, _, err := gitHubClient.Issues.Create(ctx, "pulumi", pulumiRepo, &github.IssueRequest{
+			Title:  github.String(issueTitle),
+			Labels: &[]string{"kind/enhancement"},
+			Body:   github.String(body),
+		})
+		if err != nil {
+			return err
+		}
+
+		issueNumber = *issue.Number
+
+		log.Printf("Adding issue to project board.")
+		//platformIntegrationsBoardId := 12058265
+		providerUpgradesColumnsId := int64(14558007)
+		_, _, err = gitHubClient.Projects.CreateProjectCard(ctx, providerUpgradesColumnsId, &github.ProjectCardOptions{
+			ContentID: *issue.ID,
+			// Not documented in the API.  See instead: https://stackoverflow.com/questions/57024087/github-api-how-to-move-an-issue-to-a-project
+			ContentType: "Issue",
+		})
+		if err != nil {
+			return err
+		}
 	}
 
-	log.Printf("Adding issue to project board.")
-	//platformIntegrationsBoardId := 12058265
-	providerUpgradesColumnsId := int64(14558007)
-	_, _, err = gitHubClient.Projects.CreateProjectCard(ctx, providerUpgradesColumnsId, &github.ProjectCardOptions{
-		ContentID: *issue.ID,
-		// Not documented in the API.  See instead: https://stackoverflow.com/questions/57024087/github-api-how-to-move-an-issue-to-a-project
-		ContentType: "Issue",
-	})
-	if err != nil {
-		return err
+	triggerWorkflowAllowList := strings.Split(os.Getenv("TRIGGER_WORKFLOW_ALLOW_LIST"), " ")
+	if shouldTriggerWorkflow(pulumiRepo, triggerWorkflowAllowList) {
+		log.Printf("Pulumi repo '%s' was found in the allow list. Triggering workflow.", pulumiRepo)
+
+		workflowParams := github.CreateWorkflowDispatchEventRequest{
+			Ref: "master",
+			Inputs: map[string]interface{}{
+				"version":             version[1:], // strip the leading "v"
+				"linked_issue_number": strconv.Itoa(issueNumber),
+			},
+		}
+
+		log.Printf("Triggering workflow dispatch with parameters: %+v", workflowParams)
+		_, err := gitHubClient.Actions.CreateWorkflowDispatchEventByFileName(ctx, "pulumi", pulumiRepo, "update-upstream-provider.yml", workflowParams)
+		if err != nil {
+			return err
+		}
+	} else {
+		log.Printf("Pulumi repo '%s' is not contained in the allow list to automatically trigger the update workflow.", pulumiRepo)
 	}
 
 	log.Print("Done.")
@@ -124,22 +150,8 @@ func LambdaHandler(event NewRelease) error {
 	return nil
 }
 
-func isPreRelease(version string) (bool, error) {
-	if strings.HasPrefix(version, "v") {
-		version = version[1:]
-	}
-
-	version, err := url.QueryUnescape(version)
-	if err != nil {
-		return false, err
-	}
-
-	v, err := semver.Parse(version)
-	if err != nil {
-		return false, err
-	}
-
-	return len(v.Pre) > 0, nil
+func isPreRelease(version string) bool {
+	return strings.Contains(version, "pre")
 }
 
 func parseVersion(link string) (string, error) {
@@ -237,4 +249,14 @@ func getIssues(ctx context.Context, client *github.Client, repository string) ([
 	}
 
 	return allIssues, nil
+}
+
+func shouldTriggerWorkflow(pulumiRepository string, allowList []string) bool {
+	for _, item := range allowList {
+		if strings.ToLower(strings.TrimSpace(item)) == strings.ToLower(strings.TrimSpace(pulumiRepository)) {
+			return true
+		}
+	}
+
+	return false
 }
