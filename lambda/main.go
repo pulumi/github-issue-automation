@@ -5,15 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/aws/aws-lambda-go/lambda"
 	"golang.org/x/oauth2"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
@@ -127,9 +128,16 @@ func LambdaHandler(event NewRelease) error {
 	triggerWorkflowAllowList := strings.Split(os.Getenv("TRIGGER_WORKFLOW_ALLOW_LIST"), " ")
 	if shouldTriggerWorkflow(pulumiRepo, triggerWorkflowAllowList) {
 		log.Printf("Pulumi repo '%s' was found in the allow list. Triggering workflow.", pulumiRepo)
-
+		repoObj, resp, err := gitHubClient.Repositories.Get(context.Background(), "pulumi", pulumiRepo)
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("Pulumi repo %s could not be found: %s", pulumiRepo, resp.Status)
+		}
+		if err != nil {
+			return err
+		}
+		ref := repoObj.GetDefaultBranch()
 		workflowParams := github.CreateWorkflowDispatchEventRequest{
-			Ref: "master",
+			Ref: ref,
 			Inputs: map[string]interface{}{
 				"version":             version[1:], // strip the leading "v"
 				"linked_issue_number": strconv.Itoa(issueNumber),
@@ -137,7 +145,7 @@ func LambdaHandler(event NewRelease) error {
 		}
 
 		log.Printf("Triggering workflow dispatch with parameters: %+v", workflowParams)
-		_, err := gitHubClient.Actions.CreateWorkflowDispatchEventByFileName(ctx, "pulumi", pulumiRepo, "update-upstream-provider.yml", workflowParams)
+		_, err = gitHubClient.Actions.CreateWorkflowDispatchEventByFileName(ctx, "pulumi", pulumiRepo, "update-upstream-provider.yml", workflowParams)
 		if err != nil {
 			return err
 		}
