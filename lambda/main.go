@@ -130,7 +130,7 @@ func LambdaHandler(event NewRelease) error {
 		log.Printf("Pulumi repo '%s' was found in the allow list. Triggering workflow.", pulumiRepo)
 		repoObj, resp, err := gitHubClient.Repositories.Get(context.Background(), "pulumi", pulumiRepo)
 		if resp.StatusCode != http.StatusOK {
-			log.Printf("Pulumi repo %s could not be found: %s", pulumiRepo, resp.Status)
+			return fmt.Errorf("Pulumi repo %s could not be found: %s", pulumiRepo, resp.Status)
 		}
 		if err != nil {
 			return err
