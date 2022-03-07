@@ -28,4 +28,3 @@ trigger-workflow-allow-list:
   - pulumi-terraform
   - pulumi-tls
   - pulumi-wavefront
-  - pulumi-yandex
