@@ -193,6 +193,8 @@ func parsePulumiRepo(terraformProviderUri string) (string, error) {
 		return "pulumi-azure", nil
 	case "terraform-provider-google-beta":
 		return "pulumi-gcp", nil
+	case "terraform-provider-bigip":
+		return "pulumi-f5bigip", nil
 	case "terraform":
 		return "pulumi-terraform", nil
 	default:
