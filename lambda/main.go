@@ -159,7 +159,18 @@ func LambdaHandler(event NewRelease) error {
 }
 
 func isPreRelease(version string) bool {
-	return strings.Contains(version, "pre")
+	terms := []string{
+		"pre",
+		"beta",
+	}
+
+	for _, term := range terms {
+		if strings.Contains(version, term) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func parseVersion(link string) (string, error) {
@@ -193,6 +204,8 @@ func parsePulumiRepo(terraformProviderUri string) (string, error) {
 		return "pulumi-azure", nil
 	case "terraform-provider-google-beta":
 		return "pulumi-gcp", nil
+	case "terraform-provider-bigip":
+		return "pulumi-f5bigip", nil
 	case "terraform":
 		return "pulumi-terraform", nil
 	default:

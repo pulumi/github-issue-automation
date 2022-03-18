@@ -35,6 +35,10 @@ func TestParsePulumiRepo(t *testing.T) {
 	res, err = parsePulumiRepo("https://github.com/hashicorp/terraform/releases/tag/v1.1.3")
 	assert.Nil(t, err)
 	assert.Equal(t, "pulumi-terraform", res)
+
+	res, err = parsePulumiRepo("https://github.com/F5Networks/terraform-provider-bigip/releases/tag/v1.13.0")
+	assert.Nil(t, err)
+	assert.Equal(t, "pulumi-f5bigip", res)
 }
 
 func TestParseVersion(t *testing.T) {
@@ -49,6 +53,8 @@ func TestIsPreRelease(t *testing.T) {
 
 	res2 := isPreRelease("v2.6.25")
 	assert.Equal(t, false, res2)
+
+	assert.Equal(t, true, isPreRelease("v2.41.0-beta.2"))
 }
 
 func TestShouldTriggerWorkflow(t *testing.T) {
