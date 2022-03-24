@@ -22,6 +22,7 @@ trigger-workflow-allow-list:
   - pulumi-openstack
   - pulumi-opsgenie
   - pulumi-rabbitmq
+  - pulumi-slack
   - pulumi-snowflake
   - pulumi-splunk
   - pulumi-tailscale
