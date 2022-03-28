@@ -48,13 +48,10 @@ func TestParseVersion(t *testing.T) {
 }
 
 func TestIsPreRelease(t *testing.T) {
-	res1 := isPreRelease("v0.25.29-pre%2B8224954")
-	assert.Equal(t, true, res1)
-
-	res2 := isPreRelease("v2.6.25")
-	assert.Equal(t, false, res2)
-
+	assert.Equal(t, true, isPreRelease("v0.25.29-pre%2B8224954"))
+	assert.Equal(t, false, isPreRelease("v2.6.25"))
 	assert.Equal(t, true, isPreRelease("v2.41.0-beta.2"))
+	assert.Equal(t, true, isPreRelease("v1.2.0-alpha-20220328"))
 }
 
 func TestShouldTriggerWorkflow(t *testing.T) {
