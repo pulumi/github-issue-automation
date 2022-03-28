@@ -162,6 +162,7 @@ func isPreRelease(version string) bool {
 	terms := []string{
 		"pre",
 		"beta",
+		"alpha",
 	}
 
 	for _, term := range terms {
