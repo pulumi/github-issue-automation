@@ -52,6 +52,8 @@ func TestIsPreRelease(t *testing.T) {
 	assert.Equal(t, false, isPreRelease("v2.6.25"))
 	assert.Equal(t, true, isPreRelease("v2.41.0-beta.2"))
 	assert.Equal(t, true, isPreRelease("v1.2.0-alpha-20220328"))
+	assert.Equal(t, true, isPreRelease("v1.2.0-rc2"))
+	assert.Equal(t, true, isPreRelease("v1.2.0-rc2-rc2"))
 }
 
 func TestShouldTriggerWorkflow(t *testing.T) {

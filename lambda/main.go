@@ -163,6 +163,7 @@ func isPreRelease(version string) bool {
 		"pre",
 		"beta",
 		"alpha",
+		"rc",
 	}
 
 	for _, term := range terms {
