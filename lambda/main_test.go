@@ -39,6 +39,10 @@ func TestParsePulumiRepo(t *testing.T) {
 	res, err = parsePulumiRepo("https://github.com/F5Networks/terraform-provider-bigip/releases/tag/v1.13.0")
 	assert.Nil(t, err)
 	assert.Equal(t, "pulumi-f5bigip", res)
+
+	res, err = parsePulumiRepo("https://github.com/confluentinc/terraform-provider-confluent/releases/tag/v1.13.0")
+	assert.Nil(t, err)
+	assert.Equal(t, "pulumi-confluentcloud", res)
 }
 
 func TestParseVersion(t *testing.T) {
