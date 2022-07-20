@@ -204,6 +204,8 @@ func parsePulumiRepo(terraformProviderUri string) (string, error) {
 	switch tfProvider {
 	case "terraform-provider-azurerm":
 		return "pulumi-azure", nil
+	case "terraform-provider-confluent":
+		return "pulumi-confluentcloud", nil
 	case "terraform-provider-google-beta":
 		return "pulumi-gcp", nil
 	case "terraform-provider-bigip":
