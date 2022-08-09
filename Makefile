@@ -18,6 +18,10 @@ lambda/internal-release-handler/go.sum: lambda/internal-release-handler/go.mod
 lambda/new-release-handler/go.sum: lambda/new-release-handler/go.mod
 	cd lambda/new-release-handler && go mod tidy
 
+.PHONY: clean
+clean:
+	rm .build/*
+
 # Intended for local deployment only
 .PHONY: deploy
 deploy: .build/new-release-handler.zip .build/internal-release-handler.zip pulumi/*
