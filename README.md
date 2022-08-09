@@ -15,7 +15,7 @@ Ideally, we'd like to rename this Lambda `tf-provider-release-handler`, but beca
 
 ## internal-release-handler
 
-The `internal-release-handler` Lambda is invoked by a GitHub Actions workflow in the upstream provider's repo (e.g. `pulumi-aws`). A configuration file (`internal-release-handler-config.yaml`) associates the upstream provider with its downstream consumers. 
+The `internal-release-handler` Lambda is invoked by a GitHub Actions workflow in the upstream provider's repo. See `doc/release-handler.yml` for an example of the triggering GHA workflow. A map in `getDownstreamRepos` in `lambda/internal-release-handler/main.go` handles the association between the incoming release event and downstream consumers.
 
 ## Deploy the code for local development:
 
