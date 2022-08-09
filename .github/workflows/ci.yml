@@ -23,7 +23,7 @@ jobs:
       - name: Test
         run: make test
       - name: Build Binary
-        run: make .build/new-release-handler
+        run: make default
       - name: Pulumi preview
         uses: pulumi/actions@v3
         with:
