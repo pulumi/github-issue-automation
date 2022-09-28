@@ -17,6 +17,10 @@ For an example of incoming Zapier events, see `sample-events/`.
 
 Ideally, we'd like to rename this Lambda `tf-provider-release-handler`, but because it would require manually updating all resources in Zapier, this is not worth the trouble.
 
+### Access to Zapier
+
+[pulumi-internal] Ask for an invite to the Pulumi account from @pulumi/platform-providers or any engineering manager.
+
 ## internal-release-handler
 
 The `internal-release-handler` Lambda is invoked by a GitHub Actions workflow in the upstream provider's repo. 
