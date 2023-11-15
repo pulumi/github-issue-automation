@@ -1,4 +1,7 @@
-default: .build/new-release-handler.zip .build/internal-release-handler.zip
+default: build
+
+.PHONY: build
+build: .build/new-release-handler.zip .build/internal-release-handler.zip
 
 .build/internal-release-handler.zip: .build/internal-release-handler
 	cd .build && zip internal-release-handler.zip internal-release-handler
