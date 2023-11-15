@@ -38,5 +38,9 @@ Be sure to tear down the stack if you deploy locally for testing to avoid causin
 ## Testing changes for automatic upstream provider updates
 
 1. In the AWS console, find your development Lambda, send a test event (see .`sample-events/sample-event.json` for an example and edit the fields as necessary) via the `Test` tab.
-2. Observe the Pulumi provider action "Update upstream provider" being triggered. *Note*: this is a real Action and will result in an automatic update and merge if the Action passes.
-3. When done testing, tear down the pulumi dev stack: `cd pulumi && pulumi destroy pulumi/dev`.
+1. Observe the Pulumi provider action "Update upstream provider" being triggered. *Note*: this is a real Action and will result in an automatic update and merge if the Action passes.
+1. When done testing, tear down the pulumi dev stack: `cd pulumi && pulumi destroy pulumi/dev`.
+
+## Deployment
+
+Main is automatically deployed on Pulumi's corp account with Pulumi Deployments.
