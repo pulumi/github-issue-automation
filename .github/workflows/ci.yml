@@ -22,13 +22,3 @@ jobs:
       - uses: actions/checkout@master
       - name: Test
         run: make test
-      - name: Build Binary
-        run: make default
-      - name: Pulumi preview
-        uses: pulumi/actions@v3
-        with:
-          work-dir: pulumi
-          command: preview
-          stack-name: pulumi/github-issue-automation
-          comment-on-pr: true
-          diff: true

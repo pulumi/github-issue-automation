@@ -32,7 +32,8 @@ deploy-dev: .build/new-release-handler.zip .build/internal-release-handler.zip p
 
 .PHONY: test
 test: lambda/new-release-handler/go.sum lambda/internal-release-handler/go.sum
-	cd lambda/new-release-handler && go test && cd ../internal-release-handler && go test
+	cd lambda/new-release-handler && go test ./...
+	cd lambda/internal-release-handler && go test ./...
 
 .PHONY: refresh
 refresh:
