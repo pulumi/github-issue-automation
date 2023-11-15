@@ -30,7 +30,7 @@ See `doc/release-handler.yml` for an example of the triggering GHA workflow. A m
 
 1. Ensure that an environment variable `GITHUB_TOKEN` is set to a value that allows the creation of GitHub issues for all repositories in the `pulumi` GitHub org and can add issues to the Platform Integrations Board.
 1. Set your `AWS_PROFILE` environment variable to the pulumi-dev-sandbox account and log in.
-1. `make deploy`
+1. `make deploy-dev`
 
 Some resources in this stack have static names because they are referenced outside the stack by name, therefore the stack cannot be deployed in the same AWS account more than once. 
 Be sure to tear down the stack if you deploy locally for testing to avoid causing issues for teammates.

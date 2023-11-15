@@ -26,8 +26,8 @@ clean:
 	rm .build/*
 
 # Intended for local deployment only
-.PHONY: deploy
-deploy: .build/new-release-handler.zip .build/internal-release-handler.zip pulumi/*
+.PHONY: deploy-dev
+deploy-dev: .build/new-release-handler.zip .build/internal-release-handler.zip pulumi/*
 	cd pulumi && pulumi up -s dev
 
 .PHONY: test
