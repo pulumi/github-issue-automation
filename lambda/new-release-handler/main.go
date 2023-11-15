@@ -8,10 +8,8 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"golang.org/x/oauth2"
 	"log"
-	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -84,74 +82,28 @@ func LambdaHandler(event NewRelease) error {
 		return err
 	}
 
-	issueExists := false
-	var issueNumber int
 	for _, issue := range issues {
 		if *issue.Title == issueTitle {
-			issueNumber = *issue.Number
-			issueExists = true
-			break
+			log.Printf("There is already an issue with the title '%s' in repo 'pulumi/%s': %d",
+				issueTitle, pulumiRepo, issue.Number)
+			return nil
 		}
 	}
 
-	if issueExists {
-		log.Printf("There is already an issue with the title '%s' in repo 'pulumi/%s'.", issueTitle, pulumiRepo)
-	} else {
-		log.Print("Did not find an existing issue.  Creating a new issue.")
+	log.Print("Did not find an existing issue.  Creating a new issue.")
 
-		body := fmt.Sprintf("Release details: %s", event.Link)
+	body := fmt.Sprintf("Release details: %s", event.Link)
 
-		issue, _, err := gitHubClient.Issues.Create(ctx, "pulumi", pulumiRepo, &github.IssueRequest{
-			Title:  github.String(issueTitle),
-			Labels: &[]string{"kind/enhancement"},
-			Body:   github.String(body),
-		})
-		if err != nil {
-			return err
-		}
-
-		issueNumber = *issue.Number
-
-		log.Printf("Adding issue to project board.")
-		//platformIntegrationsBoardId := 12058265
-		providerUpgradesColumnsId := int64(14558007)
-		_, _, err = gitHubClient.Projects.CreateProjectCard(ctx, providerUpgradesColumnsId, &github.ProjectCardOptions{
-			ContentID: *issue.ID,
-			// Not documented in the API.  See instead: https://stackoverflow.com/questions/57024087/github-api-how-to-move-an-issue-to-a-project
-			ContentType: "Issue",
-		})
-		if err != nil {
-			return err
-		}
+	issue, _, err := gitHubClient.Issues.Create(ctx, "pulumi", pulumiRepo, &github.IssueRequest{
+		Title:  github.String(issueTitle),
+		Labels: &[]string{"kind/enhancement"},
+		Body:   github.String(body),
+	})
+	if err != nil {
+		return err
 	}
 
-	triggerWorkflowAllowList := strings.Split(os.Getenv("TRIGGER_WORKFLOW_ALLOW_LIST"), " ")
-	if shouldTriggerWorkflow(pulumiRepo, triggerWorkflowAllowList) {
-		log.Printf("Pulumi repo '%s' was found in the allow list. Triggering workflow.", pulumiRepo)
-		repoObj, resp, err := gitHubClient.Repositories.Get(context.Background(), "pulumi", pulumiRepo)
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("Pulumi repo %s could not be found: %s", pulumiRepo, resp.Status)
-		}
-		if err != nil {
-			return err
-		}
-		ref := repoObj.GetDefaultBranch()
-		workflowParams := github.CreateWorkflowDispatchEventRequest{
-			Ref: ref,
-			Inputs: map[string]interface{}{
-				"version":             version[1:], // strip the leading "v"
-				"linked_issue_number": strconv.Itoa(issueNumber),
-			},
-		}
-
-		log.Printf("Triggering workflow dispatch with parameters: %+v", workflowParams)
-		_, err = gitHubClient.Actions.CreateWorkflowDispatchEventByFileName(ctx, "pulumi", pulumiRepo, "update-upstream-provider.yml", workflowParams)
-		if err != nil {
-			return err
-		}
-	} else {
-		log.Printf("Pulumi repo '%s' is not contained in the allow list to automatically trigger the update workflow.", pulumiRepo)
-	}
+	log.Printf("Created %#v (#%v)", issue.Title, issue.Number)
 
 	log.Print("Done.")
 
