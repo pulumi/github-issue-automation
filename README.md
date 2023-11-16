@@ -4,7 +4,6 @@ This repo contains code and infra to automate the creation of GitHub issues in P
 These include:
 
 1. Terraform provider updates that trigger the creation of issues in downstream bridged providers (the `new-release-handler` Lambda).
-1. Pulumi provider updates that trigger the creation of issues in downstream component providers (the `internal-release-handler` Lambda).
 
 ## new-release-handler
 
@@ -20,11 +19,6 @@ Ideally, we'd like to rename this Lambda `tf-provider-release-handler`, but beca
 ### Access to Zapier
 
 [pulumi-internal] Ask for an invite to the Pulumi account from @pulumi/platform-providers or any engineering manager.
-
-## internal-release-handler
-
-The `internal-release-handler` Lambda is invoked by a GitHub Actions workflow in the upstream provider's repo. 
-See `doc/release-handler.yml` for an example of the triggering GHA workflow. A map in `getDownstreamRepos` in `lambda/internal-release-handler/main.go` handles the association between the incoming release event and downstream consumers.
 
 ## Deploy the code for local development:
 
