@@ -1,4 +1,7 @@
-default: .build/new-release-handler.zip .build/internal-release-handler.zip
+default: build
+
+.PHONY: build
+build: .build/new-release-handler.zip .build/internal-release-handler.zip
 
 .build/internal-release-handler.zip: .build/internal-release-handler
 	cd .build && zip internal-release-handler.zip internal-release-handler
@@ -23,13 +26,14 @@ clean:
 	rm .build/*
 
 # Intended for local deployment only
-.PHONY: deploy
-deploy: .build/new-release-handler.zip .build/internal-release-handler.zip pulumi/*
+.PHONY: deploy-dev
+deploy-dev: .build/new-release-handler.zip .build/internal-release-handler.zip pulumi/*
 	cd pulumi && pulumi up -s dev
 
 .PHONY: test
 test: lambda/new-release-handler/go.sum lambda/internal-release-handler/go.sum
-	cd lambda/new-release-handler && go test && cd ../internal-release-handler && go test
+	cd lambda/new-release-handler && go test ./...
+	cd lambda/internal-release-handler && go test ./...
 
 .PHONY: refresh
 refresh:
