@@ -1,4 +1,8 @@
-# github-issue-automation
+# github-issue-automation (DEPRECATED)
+
+**NOTE:** As of January 17, 2024, this repository is DEPRECATED.
+See https://github.com/pulumi/ci-mgmt/issues/724, where we discuss the pros and cons of using Zapier, and have opted for a poll-based system instead.
+The production stack was deleted.
 
 This repo contains code and infra to automate the creation of GitHub issues in Pulumi provider repos for upstream updates. 
 These include:
